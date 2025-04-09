@@ -79,7 +79,6 @@ void
 ldo_close(struct ldo_file *lfp)
 {
     close(lfp->fd);
-    free(lfp);
     ldo_free(lfp->data);
     free(lfp);
 }

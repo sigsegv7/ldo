@@ -34,8 +34,15 @@
 #include <stdio.h>
 #include <ldo/file.h>
 
+/*
+ * Open a file and return an LDO file
+ * handle.
+ *
+ * @filename: Path of file.
+ * @flags: O_*
+ */
 struct ldo_file *
-ldo_open(const char *filename)
+ldo_open(const char *filename, int flags)
 {
     struct stat sb;
     struct ldo_file *lfp = NULL;
@@ -54,7 +61,7 @@ ldo_open(const char *filename)
         return NULL;
     }
 
-    if ((retval = open(filename, O_RDWR)) < 0) {
+    if ((retval = open(filename, flags)) < 0) {
         fprintf(stderr, "failed to open %s\n", filename);
         perror("open");
         free(lfp);

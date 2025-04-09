@@ -31,6 +31,7 @@
 #define LDO_FILE_H_
 
 #include <ldo/buffer.h>
+#include <fcntl.h>
 
 struct ldo_file {
     int fd;
@@ -38,7 +39,7 @@ struct ldo_file {
     struct ldo_buffer *data;
 };
 
-struct ldo_file *ldo_open(const char *filename);
+struct ldo_file *ldo_open(const char *filename, int flags);
 void ldo_close(struct ldo_file *lfp);
 
 #endif  /* !LDO_FILE_H_ */

@@ -45,6 +45,7 @@ ldo_open(const char *filename)
 
     if (lstat(filename, &sb) < 0) {
         fprintf(stderr, "failed to stat '%s'\n", filename);
+        perror("lstat");
         return NULL;
     }
 
@@ -55,6 +56,7 @@ ldo_open(const char *filename)
 
     if ((retval = open(filename, O_RDWR)) < 0) {
         fprintf(stderr, "failed to open %s\n", filename);
+        perror("open");
         free(lfp);
         return NULL;
     }

@@ -30,6 +30,8 @@
 #ifndef LDO_BUFFER_H_
 #define LDO_BUFFER_H_
 
+#define LDO_BUFSTREAM(BUFP) ((char *)(BUFP)->data)
+
 struct ldo_buffer {
     char *data;
     size_t len;

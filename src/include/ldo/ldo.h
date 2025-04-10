@@ -27,60 +27,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
+#ifndef LDO_H_
+#define LDO_H_
+
+#include <stdint.h>
 #include <ldo/file.h>
-#include <ldo/ldo.h>
 
-static ldo_flags_t flags = 0;
+/* Machine types */
+#define LDO_X86_64          0x0000
+#define LDO_AARCH64         0x0001
+#define LDO_PPC64           0x0002
+#define LDO_UNKNOWN         0x0003
 
-static void
-usage(const char *argv0)
-{
-    fprintf(stderr, "Usage: %s <*.oo>\n", argv0);
-}
+#define LDO_F_VERBOSE  (1 << 0)
 
-/*
- * Get linker runtime flags
- */
-ldo_flags_t
-ldo_rtflags(void)
-{
-    return flags;
-}
+/* Verbose log */
+#define vlog(...) do {                              \
+        if ((ldo_rtflags() & LDO_F_VERBOSE) != 0) { \
+            printf(__VA_ARGS__);                    \
+        }                                           \
+    } while (0);
 
-int
-main(int argc, char **argv)
-{
-    char c;
-    int i;
+typedef uint16_t ldo_flags_t;
+typedef uint8_t ldo_mach_t;
 
-    if (argc < 2) {
-        usage(argv[0]);
-        return -1;
-    }
+ldo_flags_t ldo_rtflags(void);
+void ldo_load(const char *pathname);
+int ldo_init(void);
 
-    while ((c = getopt(argc, argv, "hv")) >= 0) {
-        switch (c) {
-        case 'h':
-            usage(argv[0]);
-            return 0;
-        case 'v':
-            flags |= LDO_F_VERBOSE;
-            break;
-        case '?':
-            fprintf(stderr, "Bad argument: -%c\n", optopt);
-            break;
-        }
-    }
-
-    ldo_init();
-
-    /* Load object files */
-    if (optind < argc) {
-        for (i = optind; i < argc; ++i) {
-            ldo_load(argv[i]);
-        }
-    }
-    return 0;
-}
+#endif  /* !LDO_H_ */

@@ -27,60 +27,67 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/queue.h>
+#include <sys/errno.h>
+#include <ldo/object.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <ldo/file.h>
-#include <ldo/ldo.h>
+#include <stdint.h>
+#include <math.h>
 
-static ldo_flags_t flags = 0;
-
-static void
-usage(const char *argv0)
+/*
+ * Initialize an object queue.
+ *
+ * @qp: Object queue pointer.
+ * @cap: Capacity
+ *
+ * XXX: `cap' must be a power-of-two and must not exceed
+ *      OBJQ_MAXCAP.
+ */
+int
+sarry_init_objq(struct sarry_objq *qp, size_t cap)
 {
-    fprintf(stderr, "Usage: %s <*.oo>\n", argv0);
+    uint8_t e;
+
+    /*
+     * Power-of-two sizes are good for block
+     * based processing
+     */
+    if ((OBJQ_MAXCAP & 1) != 0) {
+        fprintf(stderr, "OBJQ_MAXCAP is not a power of two\n");
+        return -EINVAL;
+    }
+
+    /* Ensure `cap' doesn't exceed the limit */
+    if (cap > OBJQ_MAXCAP) {
+        e = log2(OBJQ_MAXCAP);
+        fprintf(stderr, "cap exceeds OBJQ_MAXCAP, rejecting...\n");
+        fprintf(stderr, "cap must be <= 2^%d (%d) entries\n", e, cap);
+        return -EINVAL;
+    }
+
+    TAILQ_INIT(&qp->q);
+    qp->count = 0;
+    qp->cap = cap;
 }
 
 /*
- * Get linker runtime flags
+ * Insert an object into an object queue.
+ *
+ * @qp: Object queue pointer.
+ * @op: Object pointer.
  */
-ldo_flags_t
-ldo_rtflags(void)
-{
-    return flags;
-}
-
 int
-main(int argc, char **argv)
+sarry_objq_in(struct sarry_objq *qp, struct sarry_obj *op)
 {
-    char c;
-    int i;
+    size_t new_count;
 
-    if (argc < 2) {
-        usage(argv[0]);
-        return -1;
+    new_count = (qp->count + 1);
+    if (new_count > OBJQ_MAXCAP) {
+        fprintf(stderr, "sarry_insert: object queue full\n");
+        return -ENOSPC;
     }
 
-    while ((c = getopt(argc, argv, "hv")) >= 0) {
-        switch (c) {
-        case 'h':
-            usage(argv[0]);
-            return 0;
-        case 'v':
-            flags |= LDO_F_VERBOSE;
-            break;
-        case '?':
-            fprintf(stderr, "Bad argument: -%c\n", optopt);
-            break;
-        }
-    }
-
-    ldo_init();
-
-    /* Load object files */
-    if (optind < argc) {
-        for (i = optind; i < argc; ++i) {
-            ldo_load(argv[i]);
-        }
-    }
+    TAILQ_INSERT_TAIL(&qp->q, op, link);
+    ++qp->count;
     return 0;
 }

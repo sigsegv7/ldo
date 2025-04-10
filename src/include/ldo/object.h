@@ -27,60 +27,54 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <ldo/file.h>
-#include <ldo/ldo.h>
+#ifndef OBJECT_H_
+#define OBJECT_H_
 
-static ldo_flags_t flags = 0;
+#include <sys/queue.h>
+#include <stddef.h>
 
-static void
-usage(const char *argv0)
-{
-    fprintf(stderr, "Usage: %s <*.oo>\n", argv0);
-}
+/* Pin it here, can be adjusted (XXX: careful!) */
+#define OBJQ_MAXCAP 1024
+
+/* Default cap */
+#define OBJQ_CAP 512
 
 /*
- * Get linker runtime flags
+ * Represents "static array" objects to be
+ * queued up before being injected into its
+ * resulting file's .static_array section.
+ *
+ * @pathname: Object file pathname.
+ * @cdata: Compressed data buffer.
+ * @size: Size of compressed data.
+ * @real_size: Size of data when decompressed.
  */
-ldo_flags_t
-ldo_rtflags(void)
-{
-    return flags;
-}
+struct sarry_obj {
+    const char *name;
+    const char *cdata;
+    size_t size;
+    size_t real_size;
+    TAILQ_ENTRY(sarry_obj) link;
+};
 
-int
-main(int argc, char **argv)
-{
-    char c;
-    int i;
+/*
+ * Represents a "static array" object queue
+ * which holds one or more "static array"
+ * objects. Once filled, all compressed objects
+ * are injected into a final ELF.
+ *
+ * @q: TAILQ head.
+ * @count: Number of objects.
+ * @cap: Object queue capacity.
+ */
+struct sarry_objq {
+    TAILQ_HEAD(, sarry_obj) q;
+    size_t count;
+    size_t cap;
+};
 
-    if (argc < 2) {
-        usage(argv[0]);
-        return -1;
-    }
+int sarry_init_objq(struct sarry_objq *qp, size_t cap);
+int sarry_objq_in(struct sarry_objq *qp, struct sarry_obj *op);
+int sarry_objq_flush(struct sarry_objq *qp, struct sarry_obj *op);
 
-    while ((c = getopt(argc, argv, "hv")) >= 0) {
-        switch (c) {
-        case 'h':
-            usage(argv[0]);
-            return 0;
-        case 'v':
-            flags |= LDO_F_VERBOSE;
-            break;
-        case '?':
-            fprintf(stderr, "Bad argument: -%c\n", optopt);
-            break;
-        }
-    }
-
-    ldo_init();
-
-    /* Load object files */
-    if (optind < argc) {
-        for (i = optind; i < argc; ++i) {
-            ldo_load(argv[i]);
-        }
-    }
-    return 0;
-}
+#endif  /* !OBJECT_H_ */

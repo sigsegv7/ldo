@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2025 Ian Marco Moffett and the Osmora Team.
  * All rights reserved.

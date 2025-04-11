@@ -50,7 +50,7 @@
  * @real_size: Size of data when decompressed.
  */
 struct sarry_obj {
-    const char *name;
+    const char *pathname;
     const char *cdata;
     size_t size;
     size_t real_size;

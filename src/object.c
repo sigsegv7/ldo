@@ -30,9 +30,33 @@
 #include <sys/queue.h>
 #include <sys/errno.h>
 #include <ldo/object.h>
+#include <ldo/cdefs.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <math.h>
+
+/*
+ * Checks if an object is in the static array
+ * queue and returns it if so, otherwise NULL
+ * will be returned.
+ *
+ * @qp: Queue to check.
+ * @op: Object to look for.
+ */
+static struct sarry_obj *
+sarry_obj(struct sarry_objq *qp, struct sarry_obj *op)
+{
+    struct sarry_obj *tmp;
+
+    TAILQ_FOREACH(tmp, &qp->q, link) {
+        if (tmp == op) {
+            return tmp;
+        }
+    }
+
+    return NULL;
+}
 
 /*
  * Initialize an object queue.
@@ -89,5 +113,51 @@ sarry_objq_in(struct sarry_objq *qp, struct sarry_obj *op)
 
     TAILQ_INSERT_TAIL(&qp->q, op, link);
     ++qp->count;
+    return 0;
+}
+
+/*
+ * Flush an object queue.
+ *
+ * @qp: The pointer to the object queue.
+ * @op: Object to remove (if NULL, the entire queue is flushed)
+ */
+int
+sarry_objq_flush(struct sarry_objq *qp, struct sarry_obj *op)
+{
+    struct sarry_obj *obj;
+    struct sarry_obj *tmp;
+
+    /*
+     * If the object we are trying to remove is not
+     * found in the queue, something went poorly. This
+     * happening might even imply ldo is in an undefined
+     * state from this point out, however, just warn the
+     * user and see what happens as this should not throw
+     * anything _completly_ off...
+     */
+    tmp = sarry_obj(qp, op);
+    if (__unlikely(op != NULL && tmp == NULL)) {
+        fprintf(stdout, "[warn] sarry_objq_flush: 'op' not in 'qp'\n");
+        return -EIO;
+    }
+
+    /*
+     * Do we have a specific object we want to remove?
+     * If so, then that's all the work that needs to
+     * be done.
+     */
+    if (op != NULL) {
+        TAILQ_REMOVE(&qp->q, op, link);
+        return 0;
+    }
+
+    while (!TAILQ_EMPTY(&qp->q)) {
+        /* Pop object off the queue */
+        obj = TAILQ_FIRST(&qp->q);
+        TAILQ_REMOVE(&qp->q, obj, link);
+        free(obj);
+    }
+
     return 0;
 }
